@@ -1,6 +1,6 @@
 import { createClient } from 'redis';
 import { promisify } from 'util';
-import express, { json } from 'express';
+import express from 'express';
 import kue from 'kue';
 
 // Redis Client
@@ -41,12 +41,8 @@ app.get('/reserve_seat', (req, res) => {
     });
 
     job
-      .on('complete', (result) =>
-        console.log(`Seat reservation job ${job.id} completed`),
-      )
-      .on('failed', (error) => {
-        console.error(`Seat reservation job ${job.id} failed: ${error}`);
-      });
+      .on('complete', (result) => console.log(`Seat reservation job ${job.id} completed`))
+      .on('failed', (error) => console.error(`Seat reservation job ${job.id} failed: ${error}`));
   } else {
     res.json({ status: 'Reservation are blocked' });
   }
@@ -56,12 +52,10 @@ app.get('/process', (req, res) => {
   res.json({ status: 'Queue processing' });
   queue.process('reserve_seat', async (job, done) => {
     reserveSeat((await getCurrentAvailableSeats()) - 1);
-    console.log(await getCurrentAvailableSeats(), reservationEnabled);
     if ((await getCurrentAvailableSeats()) <= 0) {
       reservationEnabled = false;
       return done(new Error('Not enough seats available'));
     }
-
     done();
   });
 });
